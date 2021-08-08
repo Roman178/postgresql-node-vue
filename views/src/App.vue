@@ -13,7 +13,7 @@ export default {
     async getData() {
       const res = await fetch("/", {
         method: "POST",
-        body: JSON.stringify({ date: "dasdasd" }),
+        body: JSON.stringify({ date: "2001-08-15, 2016-02-05, 2018-07-27" }),
         headers: {
           "Content-Type": "application/json",
         },

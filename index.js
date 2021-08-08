@@ -5,6 +5,7 @@ const { Sequelize, QueryTypes, DataTypes } = require("sequelize");
 const path = require("path");
 const { check, oneOf, validationResult } = require("express-validator");
 const validator = require("validator");
+const e = require("express");
 
 const app = express();
 
@@ -15,14 +16,26 @@ app.use(
   })
 );
 
+app.use(express.static(path.join(__dirname, "views/dist")));
+app.get("*", (req, res) => {
+  res.sendFile(path.join(__dirname, "views/dist", "index.html"));
+});
+
 app.post(
   "/",
-
-  check("date", "Дата введена некорректно").custom(async (value, { req }) => {
-    const dates = value.split(",").map((i) => i.trim());
+  check("date", "Дата введена некорректно").custom((value, { req }) => {
+    const dates = value
+      .split(",")
+      .map((i) => i.trim())
+      .map((d) => validator.isDate(d));
+    if (dates.includes(false)) {
+      return Promise.reject("Дата введена некорректно");
+    } else {
+      return Promise.resolve("ok");
+    }
   }),
 
-  (req, res, next) => {
+  async (req, res, next) => {
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
       return res.status(400).json({
@@ -33,11 +46,6 @@ app.post(
     next();
   }
 );
-
-app.use(express.static(path.join(__dirname, "views/dist")));
-app.get("*", (req, res) => {
-  res.sendFile(path.join(__dirname, "views/dist", "index.html"));
-});
 
 app.post("/", (req, res) => {
   // console.log(req.body);
