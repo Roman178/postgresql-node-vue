@@ -3,9 +3,8 @@ const bodyParser = require("body-parser");
 // const { Pool } = require("pg");
 const { Sequelize, QueryTypes, DataTypes } = require("sequelize");
 const path = require("path");
-const { check, oneOf, validationResult } = require("express-validator");
+const { check, body, oneOf, validationResult } = require("express-validator");
 const validator = require("validator");
-const e = require("express");
 
 const app = express();
 
@@ -21,19 +20,70 @@ app.get("*", (req, res) => {
   res.sendFile(path.join(__dirname, "views/dist", "index.html"));
 });
 
+function customValidation(data, msgReject) {
+  if (data.includes(false)) {
+    return Promise.reject(msgReject);
+  } else {
+    return Promise.resolve("ok");
+  }
+}
+
 app.post(
   "/",
-  check("date", "Дата введена некорректно").custom((value, { req }) => {
-    const dates = value
-      .split(",")
-      .map((i) => i.trim())
-      .map((d) => validator.isDate(d));
-    if (dates.includes(false)) {
-      return Promise.reject("Дата введена некорректно");
-    } else {
-      return Promise.resolve("ok");
-    }
-  }),
+  check("date", "Дата введена некорректно")
+    .optional()
+    .custom((value, { req }) => {
+      const dates = value
+        .split(",")
+        .map((i) => i.trim())
+        .map((d) => validator.isDate(d));
+      if (dates.length > 2) {
+        return Promise.reject(
+          "Некорректно выбран период. Введите 2 даты: начало периода, конец периода"
+        );
+      }
+      return customValidation(dates, "Дата введена некорректно");
+    }),
+  check("status", "Некорректный статус занятия. Введите 0 или 1.")
+    .optional()
+    .isInt({
+      max: 1,
+      min: 0,
+    }),
+  check("teacherIds")
+    .optional()
+    .custom((value, { req }) => {
+      const teacherIds = value
+        .split(",")
+        .map((i) => i.trim())
+        .map((t) => validator.isInt(t));
+
+      return customValidation(teacherIds, "Некорректно введены id учителей");
+    }),
+
+  check("studentsCount")
+    .optional()
+    .custom((value, { req }) => {
+      const studentsCount = value
+        .split(",")
+        .map((s) => s.trim())
+        .map((t) => validator.isInt(t));
+
+      console.log(studentsCount);
+
+      if (studentsCount.length > 2) {
+        return Promise.reject(
+          "Некорректно введено кол-во учеников. Введите либо 1 число, либо диапазон из 2х чисел."
+        );
+      }
+
+      return customValidation(
+        studentsCount,
+        "Некорректно введено кол-во учеников"
+      );
+    }),
+
+  check("page").optional().isInt(),
 
   async (req, res, next) => {
     const errors = validationResult(req);
@@ -43,12 +93,14 @@ app.post(
         message: "Данные введены не корректно",
       });
     }
+    if (!req.body.page) req.body.page = "1";
     next();
   }
 );
 
 app.post("/", (req, res) => {
   // console.log(req.body);
+  console.log(req.body);
   return res.json({ success: "success" });
 });
 

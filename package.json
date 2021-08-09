@@ -5,7 +5,8 @@
   "main": "index.js",
   "scripts": {
     "start": "nodemon index.js",
-    "dev": "concurrently \"npm start\" \"npm run watch --prefix views\""
+    "dev": "concurrently \"npm start\" \"npm run watch --prefix views\"",
+    "windows": "concurrently \"supervisor index\" \"npm run watch --prefix views\""
   },
   "author": "",
   "license": "ISC",
