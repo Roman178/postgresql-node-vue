@@ -6,6 +6,11 @@
 </template>
 
 <script>
+import Vue from "vue";
+import VueToast from "vue-toast-notification";
+import "vue-toast-notification/dist/theme-sugar.css";
+
+Vue.use(VueToast);
 export default {
   name: "App",
   components: {},
@@ -14,11 +19,12 @@ export default {
       const res = await fetch("/", {
         method: "POST",
         body: JSON.stringify({
-          date: "2001-08-15, 2016-02-05",
+          date: "2020-11-15, 2021-02-23",
           status: 1,
-          teacherIds: "2,3, 4",
-          studentsCount: "3,      23",
-          page: "2",
+          teacherIds: "2,3,4",
+          studentsCount: "5",
+          page: 1,
+          lessonsPerPage: 5,
         }),
         headers: {
           "Content-Type": "application/json",
@@ -27,6 +33,18 @@ export default {
 
       const data = await res.json();
       console.log(data);
+      if (data.errors) {
+        const { errors } = data.errors;
+        errors.forEach((er) => {
+          Vue.$toast.open({
+            message: er.msg,
+            type: "error",
+            position: "top-right",
+            duration: 7000,
+          });
+        });
+        throw data.message;
+      }
     },
   },
 };
