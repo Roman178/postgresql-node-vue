@@ -67,8 +67,10 @@ connectDb().then(async (res) => {
           FROM lessons
           INNER JOIN lesson_teachers 
           ON lessons.id = lesson_teachers.lesson_id
-          INNER JOIN lesson_students 
-          ON lessons.id = lesson_students.lesson_id) AS lessonsDraft
+          INNER JOIN lesson_students
+          ON lessons.id = lesson_students.lesson_id
+          -- WHERE student_id IN (2,3)
+          ) AS lessonsDraft
     LEFT OUTER JOIN students
     ON lessonsDraft.studentId = students.id
     LEFT OUTER JOIN teachers
@@ -76,20 +78,83 @@ connectDb().then(async (res) => {
   `);
 
   class Lesson {
-    constructor(id, date, title) {
+    constructor(id, date, title, status) {
       this.id = id;
       this.date = date;
       this.title = title;
+      this.status = status;
       this.visitCount = 0;
       this.students = [];
       this.teachers = [];
     }
-
-    addStudent() {}
-    addTeacher() {}
+    addStudent(student) {
+      if (this.students.find((st) => st.id === student.id)) return;
+      this.students.push(student);
+    }
+    addTeacher(teacher) {
+      if (this.teachers.find((tch) => tch.id === teacher.id)) return;
+      this.teachers.push(teacher);
+    }
+    incrVisit(studentId) {
+      if (this.students.find((st) => st.id === studentId)) return;
+      return this.visitCount++;
+    }
+    // get students() {
+    //   return [...this._students];
+    // }
   }
 
-  console.log(lessons);
+  const sl = lessons[0].sort((a, b) => a.id - b.id); // Sorted lessons
+  console.log(sl);
+
+  const lessonsToResponse = []; // Lessons to ressponse
+
+  for (let i = 0; i < sl.length; i++) {
+    if (i === sl.length - 1) break;
+
+    if (sl[i].id === sl[i + 1].id) {
+      if (lessonsToResponse.length === 0) {
+        const firstLesson = new Lesson(
+          sl[i].id,
+          sl[i].date,
+          sl[i].title,
+          sl[i].status
+        );
+        lessonsToResponse.push(firstLesson);
+        firstLesson.addStudent({
+          id: sl[i].studentid,
+          name: sl[i].studentname,
+          visit: sl[i].visit,
+        });
+        sl[i].visit ? firstLesson.incrVisit(sl[i].studentid) : null;
+
+        continue;
+      }
+
+      const lastLessonInArr = lessonsToResponse[lessonsToResponse.length - 1];
+      lastLessonInArr.addStudent({
+        id: sl[i + 1].studentid,
+        name: sl[i + 1].studentname,
+        visit: sl[i + 1].visit,
+      });
+      sl[i + 1].visit ? lastLessonInArr.incrVisit(sl[i + 1].studentid) : null;
+    } else {
+      const newLesson = new Lesson(
+        sl[i + 1].id,
+        sl[i + 1].date,
+        sl[i + 1].title,
+        sl[i + 1].status
+      );
+      lessonsToResponse.push(newLesson);
+      newLesson.addStudent({
+        id: sl[i + 1].studentid,
+        name: sl[i + 1].studentname,
+        visit: sl[i + 1].visit,
+      });
+    }
+  }
+
+  console.log(lessonsToResponse);
 
   // console.log(stusents.map((student) => student.dataValues));
 
