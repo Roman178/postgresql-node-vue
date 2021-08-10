@@ -1,5 +1,4 @@
 const express = require("express");
-const bodyParser = require("body-parser");
 // const { Pool } = require("pg");
 const { Sequelize, QueryTypes, DataTypes } = require("sequelize");
 const path = require("path");
@@ -12,23 +11,15 @@ const {
 
 const app = express();
 
-app.use(bodyParser.json());
-app.use(
-  bodyParser.urlencoded({
-    extended: true,
-  })
-);
+app.use(express.json());
+app.use(express.urlencoded({ extended: false }));
 
 app.use(express.static(path.join(__dirname, "views/dist")));
-app.get("*", (req, res) => {
-  res.sendFile(path.join(__dirname, "views/dist", "index.html"));
-});
 
 app.use("/", validateLessons, cbLessonsMiddleware);
 
 app.post("/", (req, res) => {
   // console.log(req.body);
-  console.log(req.body);
   return res.json({ success: "success" });
 });
 
@@ -66,7 +57,39 @@ connectDb().then(async (res) => {
 
   // const stusents = await Student.findAll({ attributes: ["id", "name"] });
 
-  client.query(``);
+  const lessons = await client.query(`
+    SELECT lessonsDraft.*,
+           students.name AS studentname,
+           teachers.name AS teachername          
+    FROM (SELECT lessons.*, 
+            lesson_students.student_id AS studentId, lesson_students.visit,
+            lesson_teachers.teacher_id AS teacherid
+          FROM lessons
+          INNER JOIN lesson_teachers 
+          ON lessons.id = lesson_teachers.lesson_id
+          INNER JOIN lesson_students 
+          ON lessons.id = lesson_students.lesson_id) AS lessonsDraft
+    LEFT OUTER JOIN students
+    ON lessonsDraft.studentId = students.id
+    LEFT OUTER JOIN teachers
+    ON lessonsDraft.teacherid = teachers.id
+  `);
+
+  class Lesson {
+    constructor(id, date, title) {
+      this.id = id;
+      this.date = date;
+      this.title = title;
+      this.visitCount = 0;
+      this.students = [];
+      this.teachers = [];
+    }
+
+    addStudent() {}
+    addTeacher() {}
+  }
+
+  console.log(lessons);
 
   // console.log(stusents.map((student) => student.dataValues));
 
