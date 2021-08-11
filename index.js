@@ -33,7 +33,7 @@ app.post("/", async (req, res) => {
     // console.log(result);
     res.json(result);
   } catch (error) {
-    res.sendStatus(500).json("");
+    res.sendStatus(500);
   }
 });
 

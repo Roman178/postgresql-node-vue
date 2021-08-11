@@ -19,10 +19,10 @@ export default {
       const res = await fetch("/", {
         method: "POST",
         body: JSON.stringify({
-          date: "2020-11-15, 2021-02-23",
-          status: 0,
-          teacherIds: "2,3,4",
-          studentsCount: "5",
+          date: "2019-06-24,2019-09-01",
+          // status: 1,
+          teacherIds: "2, 3",
+          studentsCount: "5, 4",
           page: 1,
           lessonsPerPage: 5,
         }),

@@ -1,5 +1,5 @@
 module.exports = async function getFilteredLessons(client, reqBody = []) {
-  const lessonsToResponse = [];
+  const lessons = [];
 
   class Lesson {
     constructor(id, date, title, status) {
@@ -22,7 +22,40 @@ module.exports = async function getFilteredLessons(client, reqBody = []) {
     }
   }
   console.log(reqBody);
-  const lessons = await client.query(`
+
+  function checkFiltersParams(body) {
+    let whereQuery = "";
+    if (body.date) {
+      if (body.datesArr.length < 2) {
+        whereQuery = `WHERE date = '${body.datesArr[0]}'`;
+      } else {
+        whereQuery = `WHERE date >= '${body.datesArr[0]}'
+          AND date <= '${body.datesArr[1]}'`;
+      }
+    }
+
+    if (body.status !== undefined) {
+      if (whereQuery) {
+        whereQuery += ` 
+          AND status = ${body.status}`;
+      } else {
+        whereQuery = `WHERE status = ${body.status}`;
+      }
+    }
+
+    if (body.teacherIds) {
+      if (whereQuery) {
+        whereQuery += ` 
+          AND lesson_teachers.teacher_id IN (${body.teacherIds})`;
+      } else {
+        whereQuery = `WHERE lesson_teachers.teacher_id IN (${body.teacherIds})`;
+      }
+    }
+
+    return whereQuery;
+  }
+
+  const data = await client.query(`
     SELECT lessonsDraft.*,
            students.name AS studentname,
            teachers.name AS teachername          
@@ -34,7 +67,7 @@ module.exports = async function getFilteredLessons(client, reqBody = []) {
           ON lessons.id = lesson_teachers.lesson_id
           INNER JOIN lesson_students
           ON lessons.id = lesson_students.lesson_id
-          
+          ${checkFiltersParams(reqBody)}
           ) AS lessonsDraft
     LEFT OUTER JOIN students
     ON lessonsDraft.studentId = students.id
@@ -42,42 +75,39 @@ module.exports = async function getFilteredLessons(client, reqBody = []) {
     ON lessonsDraft.teacherid = teachers.id
   `);
 
-  const sl = lessons[0].sort((a, b) => a.id - b.id); // Sorted lessons
+  const sl = data[0].sort((a, b) => a.id - b.id); // Sorted lessons
+  // console.log(data[1]);
+
+  function addStudentAndTeacher(lessonInst, index) {
+    lessonInst.addStudent({
+      id: sl[index].studentid,
+      name: sl[index].studentname,
+      visit: sl[index].visit,
+    });
+    lessonInst.addTeacher({
+      id: sl[index].teacherid,
+      name: sl[index].teachername,
+    });
+  }
 
   for (let i = 0; i < sl.length; i++) {
     if (i === sl.length - 1) break;
 
     if (sl[i].id === sl[i + 1].id) {
-      if (lessonsToResponse.length === 0) {
+      if (lessons.length === 0) {
         const firstLesson = new Lesson(
           sl[i].id,
           sl[i].date,
           sl[i].title,
           sl[i].status
         );
-        lessonsToResponse.push(firstLesson);
-        firstLesson.addStudent({
-          id: sl[i].studentid,
-          name: sl[i].studentname,
-          visit: sl[i].visit,
-        });
-        firstLesson.addTeacher({
-          id: sl[i].teacherid,
-          name: sl[i].teachername,
-        });
+        lessons.push(firstLesson);
+        addStudentAndTeacher(firstLesson, i);
         continue;
       }
 
-      const lastLessonInArr = lessonsToResponse[lessonsToResponse.length - 1];
-      lastLessonInArr.addStudent({
-        id: sl[i + 1].studentid,
-        name: sl[i + 1].studentname,
-        visit: sl[i + 1].visit,
-      });
-      lastLessonInArr.addTeacher({
-        id: sl[i + 1].teacherid,
-        name: sl[i + 1].teachername,
-      });
+      const lastLessonInArr = lessons[lessons.length - 1];
+      addStudentAndTeacher(lastLessonInArr, i + 1);
     } else {
       const newLesson = new Lesson(
         sl[i + 1].id,
@@ -85,18 +115,16 @@ module.exports = async function getFilteredLessons(client, reqBody = []) {
         sl[i + 1].title,
         sl[i + 1].status
       );
-      lessonsToResponse.push(newLesson);
-      newLesson.addStudent({
-        id: sl[i + 1].studentid,
-        name: sl[i + 1].studentname,
-        visit: sl[i + 1].visit,
-      });
-      newLesson.addTeacher({
-        id: sl[i + 1].teacherid,
-        name: sl[i + 1].teachername,
-      });
+      lessons.push(newLesson);
+      addStudentAndTeacher(newLesson, i + 1);
     }
   }
+  // const clearLessons = lessons.filter((l) => {
+  //   if (reqBody.studentsCount) {
+  //     if (reqBody.studentsCountArr.length < 2) {
 
-  return lessonsToResponse;
+  //     }
+  //   }
+  // });
+  return lessons;
 };

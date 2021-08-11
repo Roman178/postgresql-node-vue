@@ -14,16 +14,18 @@ module.exports = {
     check("date", "Дата введена некорректно")
       .optional()
       .custom((value, { req }) => {
-        const dates = value
+        const datesArr = value
           .split(",")
           .map((i) => i.trim())
-          .map((d) => validator.isDate(d));
-        if (dates.length > 2) {
+          .sort((a, b) => new Date(a) - new Date(b));
+        const datesBool = datesArr.map((d) => validator.isDate(d));
+        if (datesBool.length > 2) {
           return Promise.reject(
             "Некорректно выбран период. Введите 2 даты: начало периода, конец периода"
           );
         }
-        return customValidation(dates, "Дата введена некорректно");
+        req.body.datesArr = datesArr;
+        return customValidation(datesBool, "Дата введена некорректно");
       }),
     check("status", "Некорректный статус занятия. Введите 0 или 1.")
       .optional()
@@ -34,30 +36,31 @@ module.exports = {
     check("teacherIds")
       .optional()
       .custom((value, { req }) => {
-        const teacherIds = value
-          .split(",")
-          .map((i) => i.trim())
-          .map((t) => validator.isInt(t));
-
-        return customValidation(teacherIds, "Некорректно введены id учителей");
+        const teacherIdsArr = value.split(",").map((i) => i.trim());
+        const teacherIdsBools = teacherIdsArr.map((t) => validator.isInt(t));
+        return customValidation(
+          teacherIdsBools,
+          "Некорректно введены id учителей"
+        );
       }),
 
     check("studentsCount")
       .optional()
       .custom((value, { req }) => {
-        const studentsCount = value
-          .split(",")
-          .map((s) => s.trim())
-          .map((t) => validator.isInt(t));
+        const studentsCountArr = value.split(",").map((s) => s.trim());
 
-        if (studentsCount.length > 2) {
+        const studentsCountBools = studentsCountArr.map((t) => {
+          return validator.isInt(t);
+        });
+        req.body.studentsCountArr = studentsCountArr;
+        if (studentsCountBools.length > 2) {
           return Promise.reject(
             "Некорректно введено кол-во учеников. Введите либо 1 число, либо диапазон из 2х чисел."
           );
         }
 
         return customValidation(
-          studentsCount,
+          studentsCountBools,
           "Некорректно введено кол-во учеников"
         );
       }),
@@ -76,8 +79,8 @@ module.exports = {
         message: "Данные введены не корректно",
       });
     }
-    if (!req.body.page) req.body.page = "1";
-    if (!req.body.lessonsPerPage) req.body.lessonsPerPage = "5";
+    if (!req.body.page) req.body.page = 1;
+    if (!req.body.lessonsPerPage) req.body.lessonsPerPage = 5;
 
     next();
   },
