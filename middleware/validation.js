@@ -10,7 +10,7 @@ function customValidation(data, msgReject) {
 }
 
 module.exports = {
-  validateLessons: [
+  validateLessonsMdlwr: [
     check("date", "Дата введена некорректно")
       .optional()
       .custom((value, { req }) => {
@@ -68,7 +68,7 @@ module.exports = {
       .isInt(),
   ],
 
-  cbLessonsMiddleware: async (req, res, next) => {
+  cbLessonsMdlwr: async (req, res, next) => {
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
       return res.status(400).json({

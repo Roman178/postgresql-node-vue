@@ -20,7 +20,7 @@ export default {
         method: "POST",
         body: JSON.stringify({
           date: "2020-11-15, 2021-02-23",
-          status: 1,
+          status: 0,
           teacherIds: "2,3,4",
           studentsCount: "5",
           page: 1,
